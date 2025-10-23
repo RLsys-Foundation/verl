@@ -353,14 +353,10 @@ class FSDPEngine(BaseEngine):
         return module
 
     def _build_optimizer(self, module):
-        from torch import optim
+        from verl.workers.config.optimizer import build_optimizer
 
-        optimizer = optim.AdamW(
-            module.parameters(),
-            lr=self.optimizer_config.lr,
-            betas=self.optimizer_config.betas,
-            weight_decay=self.optimizer_config.weight_decay,
-        )
+        optimizer = build_optimizer(module.parameters(), self.optimizer_config)
+
         return optimizer
 
     def _build_lr_scheduler(self, optimizer):
@@ -974,7 +970,8 @@ class FSDPEngineWithValueHead(FSDPEngineWithLMHead):
             else:
                 values_rmpad = output.logits
                 values_rmpad = values_rmpad.squeeze(0)  # (total_nnz, 1)
-                # FIXME(houmin): confirm why should we squeeze here
+                # critic model arch is like Qwen3ForTokenClassfication and num_labels=1
+                # so we squeeze the last dimension here to get the value for each token
                 values_rmpad = values_rmpad.squeeze(-1)
 
             # gather output if sp > 1

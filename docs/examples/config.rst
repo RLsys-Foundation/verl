@@ -17,6 +17,8 @@ Data
      tokenizer: null
      train_files: ~/data/rlhf/gsm8k/train.parquet
      val_files: ~/data/rlhf/gsm8k/test.parquet
+     train_max_samples: -1  # set to -1 to use full dataset
+     val_max_samples: -1  # set to -1 to use full dataset
      prompt_key: prompt
      max_prompt_length: 512
      max_response_length: 512
@@ -25,6 +27,7 @@ Data
      return_raw_chat: False
      return_full_prompt: False
      shuffle: True
+     seed: 42
      filter_overlong_prompts: False
      filter_overlong_prompts_workers: 1
      truncation: error
@@ -41,6 +44,10 @@ Data
   HDFS path to local path.
 - ``data.val_files``: Validation parquet. Can be a list or a single
   file.
+- ``data.train_max_samples``: Maximum number of samples to use from the
+  training dataset. Set to -1 to use the full dataset.
+- ``data.val_max_samples``: Maximum number of samples to use from the
+  validation dataset. Set to -1 to use the full dataset.
 - ``data.prompt_key``: The field in the dataset where the prompt is
   located. Default is 'prompt'.
 - ``data.max_prompt_length``: Maximum prompt length. All prompts will be
@@ -60,6 +67,8 @@ Data
   without applying chat template.
 - ``data.return_full_prompt``: Whether to return the full prompt with chat template
 - ``data.shuffle``: Whether to shuffle the data in the dataloader.
+- ``data.seed``: An integer seed to use when shuffling the data. If not set or set to
+  `null`, the data shuffling will not be seeded, resulting in a different data order on each run.
 - ``data.filter_overlong_prompts``: Default don't filter.
 - ``data.filter_overlong_prompts_workers``: For large-scale dataset, filtering
   overlong prompts could be timeconsuming. You cat set the ``filter_overlong_prompts_workers``
@@ -634,20 +643,27 @@ Optim
 .. code:: yaml
 
    optim:
+     optimizer: AdamW
+     optimizer_impl: torch.optim
      lr: 1e-5
      weight_decay: 0.01
-     warmup_steps_ratio: 0.1
+     lr_warmup_steps_ratio: 0.1
      clip_grad: 1.0
      lr_scheduler: cosine
+     override_optimizer_config: null
 
+- ``optimizer``: Optimizer class name (e.g., ``"AdamW"``, ``"AdamW8bit"``, ``"_AdamW"``). The class name as it appears in the module.
+- ``optimizer_impl``: Module path to import optimizer from (e.g., ``"torch.optim"``, ``"torchao.optim"``, ``"bitsandbytes.optim"``).
 - ``optim.lr``: Learning rate for the optimizer.
 - ``optim.weight_decay``: Weight decay for the optimizer.
-- ``optim.warmup_steps_ratio``: Ratio of warmup steps to total training steps.
+- ``optim.lr_warmup_steps_ratio``: Ratio of warmup steps to total training steps.
 - ``optim.clip_grad``: Gradient clipping value.
 - ``optim.lr_scheduler``: Learning rate scheduler type. Options:
 
   - ``cosine``: Cosine learning rate scheduler with warmup (default).
   - ``wsd``: Warmup-Stable-Decay scheduler that provides a stable learning rate phase between warmup and decay phases.
+
+- ``override_optimizer_config``: Dictionary of additional optimizer-specific keyword arguments. For example, to use ``torchao.optim``'s ``_AdamW`` with BF16 stochastic rounding: ``{"bf16_stochastic_round": true}``
 
 Model
 ~~~~~~~~~~~~
